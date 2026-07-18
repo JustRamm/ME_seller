@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings, 
   Store, 
@@ -31,6 +31,13 @@ const SettingsScreen = () => {
   const [accountNumber, setAccountNumber] = useState('');
   const [ifsc, setIfsc] = useState('');
 
+  // Address
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+
   const [saved, setSaved] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
@@ -51,6 +58,11 @@ const SettingsScreen = () => {
           setBankName(seller.bankName || '');
           setAccountNumber(seller.accountNumber || '');
           setIfsc(seller.ifsc || '');
+          setAddressLine1(seller.addressLine1 || '');
+          setAddressLine2(seller.addressLine2 || '');
+          setCity(seller.city || '');
+          setState(seller.state || '');
+          setPostalCode(seller.postalCode || '');
         }
       } catch (err) {
         console.error("Settings session error:", err);
@@ -103,7 +115,12 @@ const SettingsScreen = () => {
         locationUrl,
         bankName,
         accountNumber,
-        ifsc
+        ifsc,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        postalCode
       };
 
       await updateSellerProfile(payload);
@@ -129,16 +146,19 @@ const SettingsScreen = () => {
         </div>
       </div>
 
-      {saved && (
-        <motion.div 
-          className="settings-save-success"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <CheckCircle size={18} />
-          <span>Success! Shop settings successfully saved. Changes applied.</span>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {saved && (
+          <motion.div 
+            className="settings-save-success"
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 50, x: '-50%' }}
+          >
+            <CheckCircle size={18} />
+            <span>Success! Shop settings successfully saved. Changes applied.</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isLoadingSettings ? (
         <div className="card settings-card">
@@ -301,6 +321,81 @@ const SettingsScreen = () => {
           </div>
         </div>
 
+        {/* Address Settings */}
+        <div className="card settings-card">
+          <div className="settings-card-header">
+            <Building size={20} className="header-icon" />
+            <h3>Shop Address</h3>
+          </div>
+          <p className="card-sub-info">Your shop's physical address. Important for shipping and delivery calculations.</p>
+
+          <div className="form-group">
+            <label htmlFor="address-line-1">Address Line 1</label>
+            <input 
+              type="text" 
+              id="address-line-1" 
+              className="form-input" 
+              placeholder="Building, Street, etc." 
+              value={addressLine1}
+              onChange={(e) => setAddressLine1(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address-line-2">Address Line 2 (Optional)</label>
+            <input 
+              type="text" 
+              id="address-line-2" 
+              className="form-input" 
+              placeholder="Apartment, Suite, Unit, etc." 
+              value={addressLine2}
+              onChange={(e) => setAddressLine2(e.target.value)}
+            />
+          </div>
+
+          <div className="form-double-col">
+            <div className="form-group">
+              <label htmlFor="city">City</label>
+              <input 
+                type="text" 
+                id="city" 
+                className="form-input" 
+                placeholder="City" 
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="state">State</label>
+              <input 
+                type="text" 
+                id="state" 
+                className="form-input" 
+                placeholder="State" 
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="postal-code">Postal Code / PIN Code</label>
+            <input 
+              type="text" 
+              id="postal-code" 
+              className="form-input" 
+              placeholder="e.g. 110001" 
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
         {/* Payout Banking configuration */}
         <div className="card settings-card">
           <div className="settings-card-header">
@@ -381,16 +476,21 @@ const SettingsScreen = () => {
         }
 
         .settings-save-success {
+          position: fixed;
+          bottom: 40px;
+          left: 50%;
+          z-index: 9999;
           background: var(--success-soft);
           color: var(--success);
           border: 1px solid var(--success);
-          padding: 0.85rem 1.25rem;
-          border-radius: 10px;
+          padding: 1rem 1.5rem;
+          border-radius: 50px;
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           font-weight: 600;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
 
         .settings-form-layout {

@@ -7,7 +7,7 @@ export const getProducts = async () => {
     const session = await getSellerSession();
     if (!session) throw new Error("No active seller session");
 
-    const { data, error } = await supabase
+    const { data: products, error } = await supabase
       .schema('marketplace_dataspace')
       .from('products')
       .select('*')
@@ -15,11 +15,27 @@ export const getProducts = async () => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+
+    if (!products || products.length === 0) return [];
+
+    const productIds = products.map(p => p.id);
     
-    return data ? data.map(p => ({
+    const { data: featuredData, error: featuredError } = await supabase
+      .schema('marketplace_dataspace')
+      .from('featured_products')
+      .select('product_id')
+      .in('product_id', productIds)
+      .eq('is_active', true);
+      
+    if (featuredError) throw featuredError;
+    
+    const featuredProductIds = new Set((featuredData || []).map(f => f.product_id));
+
+    return products.map(p => ({
       ...p,
-      salesCount: p.sales_count
-    })) : [];
+      salesCount: p.sales_count,
+      isFeatured: featuredProductIds.has(p.id)
+    }));
   } catch (error) {
     console.error("Error fetching products:", error);
     return [];
@@ -38,7 +54,7 @@ export const getProductViews = async (productIds = []) => {
       .in('product_id', productIds);
 
     if (error) throw error;
-    
+
     return data || [];
   } catch (error) {
     console.error("Error fetching product views:", error);
@@ -138,7 +154,7 @@ export const deleteProduct = async (id) => {
       .eq('seller_id', session.id); // Extra safety check
 
     if (error) throw error;
-    
+
     return true;
   } catch (error) {
     console.error("Error deleting product:", error);
@@ -165,6 +181,38 @@ export const updateProductStock = async (productId, newStock) => {
     return data;
   } catch (error) {
     console.error("Error updating product stock:", error);
+    throw error;
+  }
+};
+
+// Toggle product featured status
+export const toggleProductFeaturedStatus = async (productId, currentStatus) => {
+  try {
+    const session = await getSellerSession();
+    if (!session) throw new Error("No active seller session");
+
+    if (currentStatus) {
+      // Remove from featured
+      const { error } = await supabase
+        .schema('marketplace_dataspace')
+        .from('featured_products')
+        .delete()
+        .eq('product_id', productId);
+
+      if (error) throw error;
+      return false;
+    } else {
+      // Add to featured
+      const { error } = await supabase
+        .schema('marketplace_dataspace')
+        .from('featured_products')
+        .insert([{ product_id: productId, is_active: true }]);
+
+      if (error) throw error;
+      return true;
+    }
+  } catch (error) {
+    console.error("Error toggling featured status:", error);
     throw error;
   }
 };
